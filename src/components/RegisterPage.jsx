@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import '../styles/RegisterPage.css';
-
+import { useNavigate, Link } from "react-router-dom";
 const RegisterPage = () => {
   const [formData, setFormData] = useState({
     userName: '',
@@ -9,6 +9,8 @@ const RegisterPage = () => {
     userPhone: ''
   });
 
+
+    const navigate = useNavigate();
   const [message, setMessage] = useState('');
 
   const handleChange = e => setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -23,6 +25,8 @@ const RegisterPage = () => {
     });
 
     const result = await response.text();
+    console.log(result);
+    navigate("/login");
     setMessage(result);
   };
 
