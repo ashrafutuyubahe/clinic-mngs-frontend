@@ -41,7 +41,6 @@ const Dashboard = () => {
         headers: authHeaders,
       });
 
-      // Log response details for debugging
       console.log("Fetch Patients Response:", {
         url: endpoint,
         status: response.status,
@@ -59,7 +58,7 @@ const Dashboard = () => {
 
       if (sort === "asc" || sort === "desc") {
         setPatients(data);
-        setTotalPages(1); // No pagination for sorted list
+        setTotalPages(1);
       } else {
         setPatients(data.content);
         setTotalPages(data.totalPages);
@@ -181,17 +180,32 @@ const Dashboard = () => {
         url: `http://localhost:8081/clinic-mngs-v2/api/v1/patients/get-single/${id}`,
         status: response.status,
         statusText: response.statusText,
-        headers: Object.fromEntries(response.headers.entries()),
+        headers: {
+          ...Object.fromEntries(response.headers.entries()),
+          // Debugging CORS headers specifically
+          'access-control-allow-origin': response.headers.get('access-control-allow-origin') || 'unknown',
+        },
       });
 
       if (!response.ok) {
         const errorText = await response.text();
-        throw new Error(`HTTP error! Status: ${response.status}, Message: ${errorText}`);
+        throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
       }
 
       const data = await response.json();
-      console.log("Fetch Single Patient Data:", data);
-      setUpdateForm({ ...data, age: data.age.toString() });
+      console.log("Fetch Patient Data:", data);
+      // Ensure all fields are included, with fallback to empty string if null
+      setUpdateForm({
+        id: data.id || "",
+        fullName: data.fullName || "",
+        age: data.age?.toString() || "",
+        gender: data.gender || "",
+        phone: data.phone || "",
+        email: data.email || "",
+        address: data.address || "",
+        disease: data.disease || "",
+        medication: data.medication || "",
+      });
       setError(null);
     } catch (err) {
       console.error("Error fetching patient for update:", err);
@@ -208,10 +222,16 @@ const Dashboard = () => {
           method: "PUT",
           headers: authHeaders,
           body: JSON.stringify({
-            ...updateForm,
+            fullName: updateForm.fullName,
             age: parseInt(updateForm.age),
-          }),
-        }
+            gender: updateForm.gender,
+            phone: updateForm.phone,
+            email: updateForm.email,
+            address: updateForm.address,
+            disease: updateForm.disease,
+            medication: updateForm.medication,
+          },
+        )},
       );
 
       console.log("Update Patient Response:", {
@@ -223,7 +243,7 @@ const Dashboard = () => {
 
       if (!response.ok) {
         const errorText = await response.text();
-        throw new Error(`HTTP error! Status: ${response.status}, Message: ${errorText}`);
+        throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
       }
 
       const data = await response.json();
@@ -231,7 +251,7 @@ const Dashboard = () => {
       fetchPatients(page, sortDir);
       setUpdateForm(null);
       setError(null);
-      alert("Patient updated successfully.");
+      alert("Patient updated successfully!");
     } catch (err) {
       console.error("Error updating patient:", err);
       setError(`Failed to update patient: ${err.message}`);
@@ -246,7 +266,7 @@ const Dashboard = () => {
 
   const handleSortChange = (direction) => {
     setSortDir(direction);
-    setPage(0); // Reset to first page when sorting changes
+    setPage(0);
   };
 
   const handleLogout = async () => {
@@ -256,7 +276,7 @@ const Dashboard = () => {
         {
           method: "POST",
           headers: authHeaders,
-        }
+        },
       );
 
       console.log("Logout Response:", {
@@ -268,13 +288,13 @@ const Dashboard = () => {
 
       if (!response.ok) {
         const errorText = await response.text();
-        throw new Error(`HTTP error! Status: ${response.status}, Message: ${errorText}`);
+        throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
       }
 
       const data = await response.text();
       console.log("Logout Data:", data);
     } catch (err) {
-      console.error("Error during logout:", err);
+      console.error("Error during logout: err")
       setError(`Failed to logout: ${err.message}`);
     }
     localStorage.removeItem("token");
@@ -314,6 +334,8 @@ const Dashboard = () => {
                     <th>Age</th>
                     <th>Gender</th>
                     <th>Disease</th>
+                    <th>Address</th>
+                    <th>Medication</th>
                     <th>Actions</th>
                   </tr>
                 </thead>
@@ -324,6 +346,8 @@ const Dashboard = () => {
                       <td>{patient.age}</td>
                       <td>{patient.gender}</td>
                       <td>{patient.disease}</td>
+                      <td>{patient.address}</td>
+                      <td>{patient.medication}</td>
                       <td>
                         <button onClick={() => handleDelete(patient.id)}>
                           Delete
@@ -417,69 +441,77 @@ const Dashboard = () => {
             <button type="submit">Add Patient</button>
           </form>
 
+          {/* Update Patient Modal */}
           {updateForm && (
-            <>
-              <h2>Update Patient</h2>
-              <form onSubmit={handleUpdateSubmit}>
-                <input
-                  name="fullName"
-                  placeholder="Full Name"
-                  value={updateForm.fullName}
-                  onChange={handleUpdateChange}
-                  required
-                />
-                <input
-                  name="age"
-                  placeholder="Age"
-                  type="number"
-                  value={updateForm.age}
-                  onChange={handleUpdateChange}
-                  required
-                />
-                <input
-                  name="gender"
-                  placeholder="Gender"
-                  value={updateForm.gender}
-                  onChange={handleUpdateChange}
-                  required
-                />
-                <input
-                  name="phone"
-                  placeholder="Phone"
-                  value={updateForm.phone}
-                  onChange={handleUpdateChange}
-                  required
-                />
-                <input
-                  name="email"
-                  placeholder="Email"
-                  value={updateForm.email}
-                  onChange={handleUpdateChange}
-                />
-                <input
-                  name="address"
-                  placeholder="Address"
-                  value={updateForm.address}
-                  onChange={handleUpdateChange}
-                />
-                <input
-                  name="disease"
-                  placeholder="Disease"
-                  value={updateForm.disease}
-                  onChange={handleUpdateChange}
-                />
-                <input
-                  name="medication"
-                  placeholder="Medication"
-                  value={updateForm.medication}
-                  onChange={handleUpdateChange}
-                />
-                <button type="submit">Update Patient</button>
-                <button type="button" onClick={() => setUpdateForm(null)}>
-                  Cancel
-                </button>
-              </form>
-            </>
+            <div className="modal">
+              <div className="modal-content">
+                <span className="close" onClick={() => setUpdateForm(null)}>
+                  &times;
+                </span>
+                <h2>Update Patient</h2>
+                <form onSubmit={handleUpdateSubmit}>
+                  <input
+                    name="fullName"
+                    placeholder="Full Name"
+                    value={updateForm.fullName}
+                    onChange={handleUpdateChange}
+                    required
+                  />
+                  <input
+                    name="age"
+                    placeholder="Age"
+                    type="number"
+                    value={updateForm.age}
+                    onChange={handleUpdateChange}
+                    required
+                  />
+                  <input
+                    name="gender"
+                    placeholder="Gender"
+                    value={updateForm.gender}
+                    onChange={handleUpdateChange}
+                    required
+                  />
+                  <input
+                    name="phone"
+                    placeholder="Phone"
+                    value={updateForm.phone}
+                    onChange={handleUpdateChange}
+                    required
+                  />
+                  <input
+                    name="email"
+                    placeholder="Email"
+                    value={updateForm.email}
+                    onChange={handleUpdateChange}
+                  />
+                  <input
+                    name="address"
+                    placeholder="Address"
+                    value={updateForm.address}
+                    onChange={handleUpdateChange}
+                  />
+                  <input
+                    name="disease"
+                    placeholder="Disease"
+                    value={updateForm.disease}
+                    onChange={handleUpdateChange}
+                  />
+                  <input
+                    name="medication"
+                    placeholder="Medication"
+                    value={updateForm.medication}
+                    onChange={handleUpdateChange}
+                  />
+                  <div className="modal-actions">
+                    <button type="submit">Update Patient</button>
+                    <button type="button" onClick={() => setUpdateForm(null)}>
+                      Cancel
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
           )}
         </div>
       </div>
